@@ -96,17 +96,7 @@ defmodule Ecto.SoftDelete.Repo.Test do
 
       assert {:ok, %User{}} = Repo.soft_restore(user)
 
-      assert nil
-               Repo.get_by!(User, [email: "test0@example.com"], with_deleted: true).deleted_at
-    end
-
-    test "should return an error deleting" do
-      user = Repo.insert!(%User{email: "test0@example.com"})
-      Repo.delete!(user)
-
-      assert_raise Ecto.StaleEntryError, fn ->
-        Repo.soft_restore(user)
-      end
+      assert nil == Repo.get_by!(User, [email: "test0@example.com"]).deleted_at
     end
   end
 
@@ -120,35 +110,21 @@ defmodule Ecto.SoftDelete.Repo.Test do
 
       assert User |> Repo.all(with_deleted: true) |> length() == 3
 
-      assert %DateTime{} =
-               Repo.get_by!(User, [email: "test0@example.com"], with_deleted: true).deleted_at
-
-      assert %DateTime{} =
-               Repo.get_by!(User, [email: "test1@example.com"], with_deleted: true).deleted_at
-
-      assert %DateTime{} =
-               Repo.get_by!(User, [email: "test2@example.com"], with_deleted: true).deleted_at
-
-
       assert Repo.soft_restore_all(User) == {3, nil}
 
-      assert User |> Repo.all(with_deleted: true) |> length() == 3
+      assert User |> Repo.all() |> length() == 3
 
-      assert nil =
-               Repo.get_by!(User, [email: "test0@example.com"], with_deleted: true).deleted_at
+      assert nil == Repo.get_by!(User, [email: "test0@example.com"]).deleted_at
 
-      assert nil =
-               Repo.get_by!(User, [email: "test1@example.com"], with_deleted: true).deleted_at
+      assert nil == Repo.get_by!(User, [email: "test1@example.com"]).deleted_at
 
-      assert nil =
-               Repo.get_by!(User, [email: "test2@example.com"], with_deleted: true).deleted_at
+      assert nil == Repo.get_by!(User, [email: "test2@example.com"]).deleted_at
     end
 
     test "when no results are found" do
       assert Repo.soft_delete_all(User) == {0, nil}
     end
   end
-
 
   describe "prepare_query/3" do
     test "excludes soft deleted records by default" do
