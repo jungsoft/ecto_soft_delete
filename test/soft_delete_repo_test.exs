@@ -2,6 +2,7 @@ defmodule Ecto.SoftDelete.Repo.Test do
   use ExUnit.Case
   alias Ecto.SoftDelete.Test.Repo
   import Ecto.Query
+  import Ecto.SoftDelete.Query
 
   defmodule User do
     use Ecto.Schema
@@ -137,6 +138,22 @@ defmodule Ecto.SoftDelete.Repo.Test do
 
       assert Enum.member?(results, user)
       refute Enum.member?(results, soft_deleted_user)
+    end
+
+    test "includes soft deleted records if have where clausule defined ignoring with_undeleted/1" do
+      user = Repo.insert!(%User{email: "test0@example.com"})
+
+      soft_deleted_user =
+        Repo.insert!(%User{email: "deleted@example.com", deleted_at: DateTime.utc_now()})
+
+      results =
+        User
+        |> where([u], false or not is_nil(u.deleted_at))
+        |> with_undeleted()
+        |> Repo.all()
+
+      refute Enum.member?(results, user)
+      assert Enum.member?(results, soft_deleted_user)
     end
 
     test "includes soft deleted records if :with_deleted option is present" do
