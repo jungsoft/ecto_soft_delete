@@ -35,8 +35,8 @@ defmodule Ecto.SoftDelete.Repo do
 
   ## Examples
 
-      MyRepo.soft_delete_all(Post)
-      from(p in Post, where: p.id < 10) |> MyRepo.soft_delete_all()
+      MyRepo.soft_restore_all(Post)
+      from(p in Post, where: p.id < 10) |> MyRepo.soft_restore_all()
 
   """
   @callback soft_restore_all(queryable :: Ecto.Queryable.t()) :: {integer, nil | [term]}
