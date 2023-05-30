@@ -2,6 +2,7 @@ defmodule Ecto.SoftDelete.Repo.Test do
   use ExUnit.Case
   alias Ecto.SoftDelete.Test.Repo
   import Ecto.Query
+  import Ecto.SoftDelete.Query
 
   defmodule User do
     use Ecto.Schema
@@ -90,6 +91,42 @@ defmodule Ecto.SoftDelete.Repo.Test do
     end
   end
 
+  describe "soft_restore/1" do
+    test "should soft restore the queryable" do
+      user = Repo.insert!(%User{email: "test0@example.com"})
+
+      assert {:ok, %User{}} = Repo.soft_restore(user)
+
+      assert nil == Repo.get_by!(User, [email: "test0@example.com"]).deleted_at
+    end
+  end
+
+  describe "soft_restore_all/1" do
+    test "soft deleted the query" do
+      Repo.insert!(%User{email: "test0@example.com"})
+      Repo.insert!(%User{email: "test1@example.com"})
+      Repo.insert!(%User{email: "test2@example.com"})
+
+      assert Repo.soft_delete_all(User) == {3, nil}
+
+      assert User |> Repo.all(with_deleted: true) |> length() == 3
+
+      assert Repo.soft_restore_all(User) == {3, nil}
+
+      assert User |> Repo.all() |> length() == 3
+
+      assert nil == Repo.get_by!(User, [email: "test0@example.com"]).deleted_at
+
+      assert nil == Repo.get_by!(User, [email: "test1@example.com"]).deleted_at
+
+      assert nil == Repo.get_by!(User, [email: "test2@example.com"]).deleted_at
+    end
+
+    test "when no results are found" do
+      assert Repo.soft_delete_all(User) == {0, nil}
+    end
+  end
+
   describe "prepare_query/3" do
     test "excludes soft deleted records by default" do
       user = Repo.insert!(%User{email: "test0@example.com"})
@@ -101,6 +138,22 @@ defmodule Ecto.SoftDelete.Repo.Test do
 
       assert Enum.member?(results, user)
       refute Enum.member?(results, soft_deleted_user)
+    end
+
+    test "includes soft deleted records if have where clausule defined ignoring with_undeleted/1" do
+      user = Repo.insert!(%User{email: "test0@example.com"})
+
+      soft_deleted_user =
+        Repo.insert!(%User{email: "deleted@example.com", deleted_at: DateTime.utc_now()})
+
+      results =
+        User
+        |> where([u], false or not is_nil(u.deleted_at))
+        |> with_undeleted()
+        |> Repo.all()
+
+      refute Enum.member?(results, user)
+      assert Enum.member?(results, soft_deleted_user)
     end
 
     test "includes soft deleted records if :with_deleted option is present" do
